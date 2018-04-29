@@ -4,3 +4,11 @@
 erl_crash.dump
 *.ez
 *.beam
+
+# elm-package generated files
+elm-stuff
+# elm-repl generated files
+repl-temp-*
+
+#ignore vim temp file
+*.swp
