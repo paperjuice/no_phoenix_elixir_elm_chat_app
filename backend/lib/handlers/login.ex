@@ -13,12 +13,19 @@ defmodule Backend.Handlers.Login do
 
   def websocket_handle({:text, text}, state) do
 
+
+      #  %{
+      #    "name" => text,
+      #    "response" => "ok"
+      #  }
+      #  |> Poison.encode()
+
     {:reply, {:text, text}, state}
   end
 
 
   def websocket_info({:text, text}, state) do
-    {:reply, {:text, text}, state}
+    {:ok, state}
   end
 
 

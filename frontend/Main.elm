@@ -1,4 +1,7 @@
-import Html exposing (Html, div, text)
+import Html exposing (Html, div, text, input, button)
+import Html.Attributes exposing (type_, value)
+import Html.Events exposing (onInput, onClick)
+import WebSocket
 
 main =
   Html.program
@@ -8,27 +11,61 @@ main =
   , subscriptions = subscriptions
   }
 
+
+serverUrl =
+  "ws://localhost:9998"
+
+loginPath =
+  "/login"
+
+roomPath =
+  "/room"
+
+
 -- MODEL --
 type alias Model =
   { name : String
   , messages : List String
   , input : String
+  , serverResponse : String
   }
 
 type Msg
   = Input String
+  | SubmitName
+  | NewMessage String
 
-init: (Model, Cmd Msg)
+init : (Model, Cmd msg)
 init =
-  (Model "" [] "", Cmd.none)
+  (Model "" [] "" "", Cmd.none)
 
 
 -- VIEW --
-view : Model -> Html msg
+view : Model -> Html Msg
 view model =
-  div []
-      [ text "merge" ]
+  case model.name of
+    "" -> loginView model
+    _  -> roomView model
 
+loginView : Model -> Html Msg
+loginView model =
+  div []
+      [ text "Please enter your name!"
+      , div[] []
+      , input [type_ "text", value model.input, onInput Input ] []
+      , button [ onClick SubmitName ] [ text "Submit name"]
+      , div[] (showMessage model)
+      ]
+
+roomView : Model -> Html Msg
+roomView model=
+  div []
+      [ text ("Hello " ++ model.name) ]
+
+
+
+showMessage model =
+  List.map (\message -> text message ) model.messages
 
 -- UPDATE --
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -37,6 +74,17 @@ update msg model =
     Input input ->
       ({model | input = input }, Cmd.none)
 
+    SubmitName ->
+      ({model | input = ""}
+      , WebSocket.send (serverUrl ++ loginPath) model.input
+      )
+
+    NewMessage string ->
+      ({model | name = string}, Cmd.none)
+
 -- SUBSCRIPTION --
+subscriptions : Model -> Sub Msg
 subscriptions model =
-  Sub.none
+  Sub.batch
+  [ WebSocket.listen (serverUrl ++ loginPath) NewMessage
+  ]
