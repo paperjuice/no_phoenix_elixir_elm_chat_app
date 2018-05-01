@@ -1,3 +1,66 @@
-body {
-  color: blue;
+:root {
+  --panel-color: #ddd;
+}
+
+.chat {
+  position: absolute;
+  width: 480px;
+  height: 380px;
+  background-color: #aaa;
+  border-radius: 5px;
+  box-shadow: 0px 5px 10px #888;
+}
+
+.participants {
+  position: absolute;
+  width: 100px;
+  height: 370px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: var(--panel-color);
+  border-radius: 3px;
+  float: left;
+  margin-left: 5px;
+  box-shadow: 0px 2px 5px #888;
+}
+
+.chat .msgPanel {
+  position: absolute;
+  background-color: var(--panel-color);
+  width: 365px;
+  height: 300px;
+  right: 5px;
+  top: 5px;
+  border-radius: 3px;
+  box-shadow: 0px 2px 5px #888;
+}
+
+.inputPanel {
+  position: absolute;
+  width: 365px;
+  height: 65px;
+  background-color: var(--panel-color);
+  right: 5px;
+  bottom: 5px;
+  border-radius: 3px;
+  box-shadow: 0px 2px 5px #888;
+}
+
+.participants .text {
+  color: black;
+  font-size: 18px;
+  text-align: center;
+  padding: 3px;
+}
+
+.inputField {
+  width: 75%;
+  height: 100%;
+  text-align: bottom;
+}
+
+.send {
+  width: 25%;
+  height: 100%;
+  font-size: 18;
 }

@@ -1,12 +1,9 @@
 defmodule Backend.InitServer do
-  alias Backend.Handlers.Login
-  alias Backend.Handlers.Room
+  alias Backend.Handlers.Chat
 
   def init do
     dispatch = :cowboy_router.compile([
-      {:_, [{"/login", Login, []},
-            {"/room", Room, []}
-            ]
+      {:_, [{"/chat", Chat, []}]
       }
     ])
 

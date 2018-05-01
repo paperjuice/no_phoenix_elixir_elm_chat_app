@@ -1,7 +1,9 @@
 import Html exposing (Html, div, text, input, button)
-import Html.Attributes exposing (type_, value)
+import Html.Attributes exposing (type_, value, class)
 import Html.Events exposing (onInput, onClick)
 import WebSocket
+import Json.Decode exposing (decodeString, field, map2, string, list)
+import Json.Encode exposing (encode, object)
 
 main =
   Html.program
@@ -13,13 +15,7 @@ main =
 
 
 serverUrl =
-  "ws://localhost:9998"
-
-loginPath =
-  "/login"
-
-roomPath =
-  "/room"
+  "ws://localhost:9998/chat"
 
 
 -- MODEL --
@@ -28,16 +24,25 @@ type alias Model =
   , messages : List String
   , input : String
   , serverResponse : String
+  , participants : List String
+  }
+
+type alias NameResponse =
+  { msg_type : String
+  , msg : String
   }
 
 type Msg
   = Input String
   | SubmitName
-  | NewMessage String
+  | IncomingMessage String
+  | NewMessage
+  | ListenForMessage String
 
 init : (Model, Cmd msg)
 init =
-  (Model "" [] "" "", Cmd.none)
+  (Model "" [] "" "" [""]
+  , Cmd.none)
 
 
 -- VIEW --
@@ -59,9 +64,26 @@ loginView model =
 
 roomView : Model -> Html Msg
 roomView model=
-  div []
-      [ text ("Hello " ++ model.name) ]
+  div [ class "chat" ]
+      [ div [ class "participants"] (viewParticipants model)
+      , div [ class "msgPanel" ] (viewMsgPanel model)
+      , div [ class "inputPanel" ] [viewInputField model]
+      ]
 
+viewParticipants : Model -> List (Html msg)
+viewParticipants model =
+  List.map (\part -> div [class "text" ] [ text part ])
+    model.participants
+
+viewMsgPanel model =
+  List.map(\message -> div [] [ text message]) model.messages
+
+viewInputField : Model -> Html Msg
+viewInputField model =
+  div []
+      [ input [class "inputField", value model.input, onInput Input ] []
+      , button [ class "send", onClick NewMessage ] [ text "Send" ]
+      ]
 
 
 showMessage model =
@@ -75,16 +97,60 @@ update msg model =
       ({model | input = input }, Cmd.none)
 
     SubmitName ->
+      let
+          registerName =
+            object
+            [ ("type", Json.Encode.string "register_name")
+            , ("name", Json.Encode.string model.input)
+              ]
+
+          response = encode 0 registerName
+
+      in
       ({model | input = ""}
-      , WebSocket.send (serverUrl ++ loginPath) model.input
+      , WebSocket.send serverUrl response
       )
 
-    NewMessage string ->
-      ({model | name = string}, Cmd.none)
+    IncomingMessage resp ->
+      let
+          record =
+            case decodeString nameResponse resp of
+              Ok object -> object
+              Err reason -> NameResponse "error" reason
+
+      in
+          case record.msg_type of
+            "register_name" -> ({model | name = record.msg}, Cmd.none)
+            _ -> ( model, Cmd.none )
+
+    NewMessage ->
+      let
+          newMessage =
+            object
+            [ ("type", Json.Encode.string "new_message")
+            , ("message", Json.Encode.string model.input)
+            ]
+
+          response = encode 0 newMessage
+      in
+          ( {model | input = ""}
+          , WebSocket.send serverUrl response
+          )
+
+    ListenForMessage msg ->
+      ( {model | messages = model.messages ++ [msg] }, Cmd.none )
+
+
+-- JSON DECODE --
+nameResponse =
+  map2 NameResponse
+    (field "response" string)
+    (field "name" string)
 
 -- SUBSCRIPTION --
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
-  [ WebSocket.listen (serverUrl ++ loginPath) NewMessage
+  [ WebSocket.listen serverUrl IncomingMessage
   ]
