@@ -9211,7 +9211,7 @@ var _elm_lang$websocket$WebSocket$onSelfMsg = F3(
 	});
 _elm_lang$core$Native_Platform.effectManagers['WebSocket'] = {pkg: 'elm-lang/websocket', init: _elm_lang$websocket$WebSocket$init, onEffects: _elm_lang$websocket$WebSocket$onEffects, onSelfMsg: _elm_lang$websocket$WebSocket$onSelfMsg, tag: 'fx', cmdMap: _elm_lang$websocket$WebSocket$cmdMap, subMap: _elm_lang$websocket$WebSocket$subMap};
 
-var _user$project$Main$converstationView = function (model) {
+var _user$project$Main$conversationView = function (model) {
 	return A2(
 		_elm_lang$core$List$map,
 		function (msg) {
@@ -9223,12 +9223,12 @@ var _user$project$Main$converstationView = function (model) {
 					_0: _elm_lang$html$Html$text(
 						A2(
 							_elm_lang$core$Basics_ops['++'],
-							model.name,
-							A2(_elm_lang$core$Basics_ops['++'], '> ', msg))),
+							msg.name,
+							A2(_elm_lang$core$Basics_ops['++'], '> ', msg.msg))),
 					_1: {ctor: '[]'}
 				});
 		},
-		model.listOfMsgs);
+		model.messages);
 };
 var _user$project$Main$messageEncode = F2(
 	function (name, msg) {
@@ -9261,29 +9261,31 @@ var _user$project$Main$messageDecode = A3(
 	_user$project$Main$JsonMessage,
 	A2(_elm_lang$core$Json_Decode$field, 'name', _elm_lang$core$Json_Decode$string),
 	A2(_elm_lang$core$Json_Decode$field, 'msg', _elm_lang$core$Json_Decode$string));
+var _user$project$Main$Message = F2(
+	function (a, b) {
+		return {name: a, msg: b};
+	});
 var _user$project$Main$chatUpdate = F2(
 	function (msg, model) {
 		var _p0 = msg;
 		switch (_p0.ctor) {
 			case 'SendMessage':
+				var newMessage = A2(_user$project$Main$Message, model.name, model.input);
 				var message = A2(
-					_elm_lang$core$Debug$log,
-					'message',
-					A2(
-						_elm_lang$core$Json_Encode$encode,
-						0,
-						A2(_user$project$Main$messageEncode, model.name, model.input)));
+					_elm_lang$core$Json_Encode$encode,
+					0,
+					A2(_user$project$Main$messageEncode, model.name, model.input));
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
 						{
-							listOfMsgs: A2(
-								_elm_lang$core$List$append,
-								model.listOfMsgs,
+							messages: A2(
+								_elm_lang$core$Basics_ops['++'],
+								model.messages,
 								{
 									ctor: '::',
-									_0: model.input,
+									_0: newMessage,
 									_1: {ctor: '[]'}
 								}),
 							input: ''
@@ -9315,18 +9317,18 @@ var _user$project$Main$chatUpdate = F2(
 						return A2(_user$project$Main$JsonMessage, 'error', 'error');
 					}
 				}();
+				var newMessage = A2(_user$project$Main$Message, parsedMessage.name, parsedMessage.msg);
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
 						{
-							name: parsedMessage.name,
-							listOfMsgs: A2(
+							messages: A2(
 								_elm_lang$core$Basics_ops['++'],
-								model.listOfMsgs,
+								model.messages,
 								{
 									ctor: '::',
-									_0: parsedMessage.msg,
+									_0: newMessage,
 									_1: {ctor: '[]'}
 								})
 						}),
@@ -9334,20 +9336,19 @@ var _user$project$Main$chatUpdate = F2(
 				};
 		}
 	});
-var _user$project$Main$Model = F4(
-	function (a, b, c, d) {
-		return {name: a, input: b, msg: c, listOfMsgs: d};
+var _user$project$Main$Model = F3(
+	function (a, b, c) {
+		return {name: a, input: b, messages: c};
 	});
 var _user$project$Main$chatInit = {
 	ctor: '_Tuple2',
-	_0: A4(
+	_0: A3(
 		_user$project$Main$Model,
-		'',
 		'',
 		'',
 		{
 			ctor: '::',
-			_0: '',
+			_0: A2(_user$project$Main$Message, '', ''),
 			_1: {ctor: '[]'}
 		}),
 	_1: _elm_lang$core$Platform_Cmd$none
@@ -9424,7 +9425,7 @@ var _user$project$Main$chatView = function (model) {
 				_0: A2(
 					_elm_lang$html$Html$div,
 					{ctor: '[]'},
-					_user$project$Main$converstationView(model)),
+					_user$project$Main$conversationView(model)),
 				_1: {
 					ctor: '::',
 					_0: A2(
