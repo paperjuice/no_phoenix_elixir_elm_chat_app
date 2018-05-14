@@ -1,156 +1,119 @@
-import Html exposing (Html, div, text, input, button)
-import Html.Attributes exposing (type_, value, class)
-import Html.Events exposing (onInput, onClick)
-import WebSocket
-import Json.Decode exposing (decodeString, field, map2, string, list)
-import Json.Encode exposing (encode, object)
-
-main =
-  Html.program
-  { view = view
-  , init = init
-  , update = update
-  , subscriptions = subscriptions
-  }
+import Html exposing(Html, div, text, input, button)
+import Html.Attributes exposing(type_, placeholder, class, value)
+import Html.Events exposing(onInput, onClick)
+import Json.Decode as JD
+import Json.Encode as JE
+import WebSocket as WS
 
 
 serverUrl =
-  "ws://localhost:9998/chat"
+        "ws://localhost:9998"
 
+-- Main --
+main =
+        Html.program
+        { view = chatView
+        , update = chatUpdate
+        , init = chatInit
+        , subscriptions = chatSubscriptions
+        }
 
--- MODEL --
-type alias Model =
-  { name : String
-  , messages : List String
-  , input : String
-  , serverResponse : String
-  , participants : List String
-  }
+-- Json Encode --
+messageEncode name msg =
+        JE.object
+        [ ("name", JE.string name)
+        , ("msg",  JE.string msg)
+        ]
 
-type alias NameResponse =
-  { msg_type : String
-  , msg : String
-  }
+-- Json Decode --
+type alias JsonMessage =
+        { name : String
+        , msg : String
+        }
 
+messageDecode =
+        JD.map2 JsonMessage
+                ( JD.field "name" JD.string)
+                (JD.field "msg" JD.string)
+
+-- Message --
 type Msg
-  = Input String
-  | SubmitName
-  | IncomingMessage String
-  | NewMessage
-  | ListenForMessage String
-
-init : (Model, Cmd msg)
-init =
-  (Model "" [] "" "" [""]
-  , Cmd.none)
+        = SendMessage
+        | AddName
+        | Input String
+        | NewMessage String
 
 
--- VIEW --
-view : Model -> Html Msg
-view model =
-  case model.name of
-    "" -> loginView model
-    _  -> roomView model
+-- Model --
+type alias Model =
+        { name : String
+        , input : String
+        , msg : String
+        , listOfMsgs : List String
+        }
 
-loginView : Model -> Html Msg
-loginView model =
-  div []
-      [ text "Please enter your name!"
-      , div[] []
-      , input [type_ "text", value model.input, onInput Input ] []
-      , button [ onClick SubmitName ] [ text "Submit name"]
-      , div[] (showMessage model)
-      ]
+-- Init --
+chatInit : (Model, Cmd msg)
+chatInit =
+        ( Model "" "" "" [""], Cmd.none)
 
-roomView : Model -> Html Msg
-roomView model=
-  div [ class "chat" ]
-      [ div [ class "participants"] (viewParticipants model)
-      , div [ class "msgPanel" ] (viewMsgPanel model)
-      , div [ class "inputPanel" ] [viewInputField model]
-      ]
+-- View --
+chatView : Model -> Html Msg
+chatView model =
+        case model.name of
+                "" -> initialView model 
+                _ -> div[ ]
+                        [ div [] (converstationView model)
+                        , input [ type_ "text", value model.input, placeholder "Message", onInput Input ] []
+                        , button [onClick SendMessage] [text "Send message"]
+                        ] 
 
-viewParticipants : Model -> List (Html msg)
-viewParticipants model =
-  List.map (\part -> div [class "text" ] [ text part ])
-    model.participants
-
-viewMsgPanel model =
-  List.map(\message -> div [] [ text message]) model.messages
-
-viewInputField : Model -> Html Msg
-viewInputField model =
-  div []
-      [ input [class "inputField", value model.input, onInput Input ] []
-      , button [ class "send", onClick NewMessage ] [ text "Send" ]
-      ]
-
-
-showMessage model =
-  List.map (\message -> text message ) model.messages
-
--- UPDATE --
-update : Msg -> Model -> (Model, Cmd Msg)
-update msg model =
-  case msg of
-    Input input ->
-      ({model | input = input }, Cmd.none)
-
-    SubmitName ->
-      let
-          registerName =
-            object
-            [ ("type", Json.Encode.string "register_name")
-            , ("name", Json.Encode.string model.input)
-              ]
-
-          response = encode 0 registerName
-
-      in
-      ({model | input = ""}
-      , WebSocket.send serverUrl response
-      )
-
-    IncomingMessage resp ->
-      let
-          record =
-            case decodeString nameResponse resp of
-              Ok object -> object
-              Err reason -> NameResponse "error" reason
-
-      in
-          case record.msg_type of
-            "register_name" -> ({model | name = record.msg}, Cmd.none)
-            _ -> ( model, Cmd.none )
-
-    NewMessage ->
-      let
-          newMessage =
-            object
-            [ ("type", Json.Encode.string "new_message")
-            , ("message", Json.Encode.string model.input)
+initialView : Model -> Html Msg
+initialView model =
+        div [ class "initialView" ]
+            [ input [ type_ "text", value model.input, placeholder "Enter name", onInput Input ] []
+            , button [ onClick AddName ] [ text "Submit name" ]
             ]
 
-          response = encode 0 newMessage
-      in
-          ( {model | input = ""}
-          , WebSocket.send serverUrl response
-          )
-
-    ListenForMessage msg ->
-      ( {model | messages = model.messages ++ [msg] }, Cmd.none )
+converstationView model =
+        List.map (\ msg ->
+                div[] [ text (model.name ++ "> " ++ msg) ]
+                ) model.listOfMsgs
 
 
--- JSON DECODE --
-nameResponse =
-  map2 NameResponse
-    (field "response" string)
-    (field "name" string)
+-- Update --
+chatUpdate : Msg -> Model -> (Model, Cmd msg)
+chatUpdate msg model =
+        case msg of
+                SendMessage ->
+                        let
+                            message = 
+                                    messageEncode model.name model.input
+                                    |> JE.encode 0
+                                    |> Debug.log "message"
+                        in
+                        ( {model | listOfMsgs = List.append model.listOfMsgs  [model.input], input = "" }
+                        , WS.send serverUrl message
+                        )
 
--- SUBSCRIPTION --
+                Input input ->
+                        ( {model | input = input}, Cmd.none )
 
-subscriptions : Model -> Sub Msg
-subscriptions model =
-  Sub.batch
-  [ WebSocket.listen serverUrl IncomingMessage
-  ]
+                AddName ->
+                        ( {model | name = model.input, input = ""}, Cmd.none )
+
+                NewMessage message ->
+                        let
+                            parsedMessage = 
+                                    case JD.decodeString messageDecode message of
+                                            Ok response -> response
+                                            error -> JsonMessage "error" "error"
+                        in
+                           ( { model | name = parsedMessage.name, listOfMsgs = model.listOfMsgs ++ [parsedMessage.msg]}, Cmd.none)
+
+-- Subscriptions --
+chatSubscriptions : Model -> Sub Msg
+chatSubscriptions model =
+        WS.listen serverUrl NewMessage
+        
+                

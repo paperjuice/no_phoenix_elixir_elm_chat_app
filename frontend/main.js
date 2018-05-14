@@ -9211,59 +9211,138 @@ var _elm_lang$websocket$WebSocket$onSelfMsg = F3(
 	});
 _elm_lang$core$Native_Platform.effectManagers['WebSocket'] = {pkg: 'elm-lang/websocket', init: _elm_lang$websocket$WebSocket$init, onEffects: _elm_lang$websocket$WebSocket$onEffects, onSelfMsg: _elm_lang$websocket$WebSocket$onSelfMsg, tag: 'fx', cmdMap: _elm_lang$websocket$WebSocket$cmdMap, subMap: _elm_lang$websocket$WebSocket$subMap};
 
-var _user$project$Main$showMessage = function (model) {
+var _user$project$Main$converstationView = function (model) {
 	return A2(
 		_elm_lang$core$List$map,
-		function (message) {
-			return _elm_lang$html$Html$text(message);
-		},
-		model.messages);
-};
-var _user$project$Main$viewMsgPanel = function (model) {
-	return A2(
-		_elm_lang$core$List$map,
-		function (message) {
+		function (msg) {
 			return A2(
 				_elm_lang$html$Html$div,
 				{ctor: '[]'},
 				{
 					ctor: '::',
-					_0: _elm_lang$html$Html$text(message),
+					_0: _elm_lang$html$Html$text(
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							model.name,
+							A2(_elm_lang$core$Basics_ops['++'], '> ', msg))),
 					_1: {ctor: '[]'}
 				});
 		},
-		model.messages);
+		model.listOfMsgs);
 };
-var _user$project$Main$viewParticipants = function (model) {
-	return A2(
-		_elm_lang$core$List$map,
-		function (part) {
-			return A2(
-				_elm_lang$html$Html$div,
-				{
-					ctor: '::',
-					_0: _elm_lang$html$Html_Attributes$class('text'),
-					_1: {ctor: '[]'}
+var _user$project$Main$messageEncode = F2(
+	function (name, msg) {
+		return _elm_lang$core$Json_Encode$object(
+			{
+				ctor: '::',
+				_0: {
+					ctor: '_Tuple2',
+					_0: 'name',
+					_1: _elm_lang$core$Json_Encode$string(name)
 				},
-				{
+				_1: {
 					ctor: '::',
-					_0: _elm_lang$html$Html$text(part),
+					_0: {
+						ctor: '_Tuple2',
+						_0: 'msg',
+						_1: _elm_lang$core$Json_Encode$string(msg)
+					},
 					_1: {ctor: '[]'}
-				});
-		},
-		model.participants);
-};
-var _user$project$Main$serverUrl = 'ws://localhost:9998/chat';
-var _user$project$Main$Model = F5(
-	function (a, b, c, d, e) {
-		return {name: a, messages: b, input: c, serverResponse: d, participants: e};
+				}
+			});
 	});
-var _user$project$Main$init = {
+var _user$project$Main$serverUrl = 'ws://localhost:9998';
+var _user$project$Main$JsonMessage = F2(
+	function (a, b) {
+		return {name: a, msg: b};
+	});
+var _user$project$Main$messageDecode = A3(
+	_elm_lang$core$Json_Decode$map2,
+	_user$project$Main$JsonMessage,
+	A2(_elm_lang$core$Json_Decode$field, 'name', _elm_lang$core$Json_Decode$string),
+	A2(_elm_lang$core$Json_Decode$field, 'msg', _elm_lang$core$Json_Decode$string));
+var _user$project$Main$chatUpdate = F2(
+	function (msg, model) {
+		var _p0 = msg;
+		switch (_p0.ctor) {
+			case 'SendMessage':
+				var message = A2(
+					_elm_lang$core$Debug$log,
+					'message',
+					A2(
+						_elm_lang$core$Json_Encode$encode,
+						0,
+						A2(_user$project$Main$messageEncode, model.name, model.input)));
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{
+							listOfMsgs: A2(
+								_elm_lang$core$List$append,
+								model.listOfMsgs,
+								{
+									ctor: '::',
+									_0: model.input,
+									_1: {ctor: '[]'}
+								}),
+							input: ''
+						}),
+					_1: A2(_elm_lang$websocket$WebSocket$send, _user$project$Main$serverUrl, message)
+				};
+			case 'Input':
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{input: _p0._0}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			case 'AddName':
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{name: model.input, input: ''}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			default:
+				var parsedMessage = function () {
+					var _p1 = A2(_elm_lang$core$Json_Decode$decodeString, _user$project$Main$messageDecode, _p0._0);
+					if (_p1.ctor === 'Ok') {
+						return _p1._0;
+					} else {
+						return A2(_user$project$Main$JsonMessage, 'error', 'error');
+					}
+				}();
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{
+							name: parsedMessage.name,
+							listOfMsgs: A2(
+								_elm_lang$core$Basics_ops['++'],
+								model.listOfMsgs,
+								{
+									ctor: '::',
+									_0: parsedMessage.msg,
+									_1: {ctor: '[]'}
+								})
+						}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+		}
+	});
+var _user$project$Main$Model = F4(
+	function (a, b, c, d) {
+		return {name: a, input: b, msg: c, listOfMsgs: d};
+	});
+var _user$project$Main$chatInit = {
 	ctor: '_Tuple2',
-	_0: A5(
+	_0: A4(
 		_user$project$Main$Model,
 		'',
-		{ctor: '[]'},
 		'',
 		'',
 		{
@@ -9273,153 +9352,79 @@ var _user$project$Main$init = {
 		}),
 	_1: _elm_lang$core$Platform_Cmd$none
 };
-var _user$project$Main$NameResponse = F2(
-	function (a, b) {
-		return {msg_type: a, msg: b};
-	});
-var _user$project$Main$nameResponse = A3(
-	_elm_lang$core$Json_Decode$map2,
-	_user$project$Main$NameResponse,
-	A2(_elm_lang$core$Json_Decode$field, 'response', _elm_lang$core$Json_Decode$string),
-	A2(_elm_lang$core$Json_Decode$field, 'name', _elm_lang$core$Json_Decode$string));
-var _user$project$Main$update = F2(
-	function (msg, model) {
-		var _p0 = msg;
-		switch (_p0.ctor) {
-			case 'Input':
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						model,
-						{input: _p0._0}),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-			case 'SubmitName':
-				var registerName = _elm_lang$core$Json_Encode$object(
-					{
-						ctor: '::',
-						_0: {
-							ctor: '_Tuple2',
-							_0: 'type',
-							_1: _elm_lang$core$Json_Encode$string('register_name')
-						},
-						_1: {
-							ctor: '::',
-							_0: {
-								ctor: '_Tuple2',
-								_0: 'name',
-								_1: _elm_lang$core$Json_Encode$string(model.input)
-							},
-							_1: {ctor: '[]'}
-						}
-					});
-				var response = A2(_elm_lang$core$Json_Encode$encode, 0, registerName);
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						model,
-						{input: ''}),
-					_1: A2(_elm_lang$websocket$WebSocket$send, _user$project$Main$serverUrl, response)
-				};
-			case 'IncomingMessage':
-				var record = function () {
-					var _p1 = A2(_elm_lang$core$Json_Decode$decodeString, _user$project$Main$nameResponse, _p0._0);
-					if (_p1.ctor === 'Ok') {
-						return _p1._0;
-					} else {
-						return A2(_user$project$Main$NameResponse, 'error', _p1._0);
-					}
-				}();
-				var _p2 = record.msg_type;
-				if (_p2 === 'register_name') {
-					return {
-						ctor: '_Tuple2',
-						_0: _elm_lang$core$Native_Utils.update(
-							model,
-							{name: record.msg}),
-						_1: _elm_lang$core$Platform_Cmd$none
-					};
-				} else {
-					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-				}
-			case 'NewMessage':
-				var newMessage = _elm_lang$core$Json_Encode$object(
-					{
-						ctor: '::',
-						_0: {
-							ctor: '_Tuple2',
-							_0: 'type',
-							_1: _elm_lang$core$Json_Encode$string('new_message')
-						},
-						_1: {
-							ctor: '::',
-							_0: {
-								ctor: '_Tuple2',
-								_0: 'message',
-								_1: _elm_lang$core$Json_Encode$string(model.input)
-							},
-							_1: {ctor: '[]'}
-						}
-					});
-				var response = A2(_elm_lang$core$Json_Encode$encode, 0, newMessage);
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						model,
-						{input: ''}),
-					_1: A2(_elm_lang$websocket$WebSocket$send, _user$project$Main$serverUrl, response)
-				};
-			default:
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						model,
-						{
-							messages: A2(
-								_elm_lang$core$Basics_ops['++'],
-								model.messages,
-								{
-									ctor: '::',
-									_0: _p0._0,
-									_1: {ctor: '[]'}
-								})
-						}),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-		}
-	});
-var _user$project$Main$ListenForMessage = function (a) {
-	return {ctor: 'ListenForMessage', _0: a};
+var _user$project$Main$NewMessage = function (a) {
+	return {ctor: 'NewMessage', _0: a};
 };
-var _user$project$Main$NewMessage = {ctor: 'NewMessage'};
-var _user$project$Main$IncomingMessage = function (a) {
-	return {ctor: 'IncomingMessage', _0: a};
+var _user$project$Main$chatSubscriptions = function (model) {
+	return A2(_elm_lang$websocket$WebSocket$listen, _user$project$Main$serverUrl, _user$project$Main$NewMessage);
 };
-var _user$project$Main$subscriptions = function (model) {
-	return _elm_lang$core$Platform_Sub$batch(
-		{
-			ctor: '::',
-			_0: A2(_elm_lang$websocket$WebSocket$listen, _user$project$Main$serverUrl, _user$project$Main$IncomingMessage),
-			_1: {ctor: '[]'}
-		});
-};
-var _user$project$Main$SubmitName = {ctor: 'SubmitName'};
 var _user$project$Main$Input = function (a) {
 	return {ctor: 'Input', _0: a};
 };
-var _user$project$Main$loginView = function (model) {
+var _user$project$Main$AddName = {ctor: 'AddName'};
+var _user$project$Main$initialView = function (model) {
 	return A2(
 		_elm_lang$html$Html$div,
-		{ctor: '[]'},
 		{
 			ctor: '::',
-			_0: _elm_lang$html$Html$text('Please enter your name!'),
+			_0: _elm_lang$html$Html_Attributes$class('initialView'),
+			_1: {ctor: '[]'}
+		},
+		{
+			ctor: '::',
+			_0: A2(
+				_elm_lang$html$Html$input,
+				{
+					ctor: '::',
+					_0: _elm_lang$html$Html_Attributes$type_('text'),
+					_1: {
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$value(model.input),
+						_1: {
+							ctor: '::',
+							_0: _elm_lang$html$Html_Attributes$placeholder('Enter name'),
+							_1: {
+								ctor: '::',
+								_0: _elm_lang$html$Html_Events$onInput(_user$project$Main$Input),
+								_1: {ctor: '[]'}
+							}
+						}
+					}
+				},
+				{ctor: '[]'}),
 			_1: {
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$button,
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html_Events$onClick(_user$project$Main$AddName),
+						_1: {ctor: '[]'}
+					},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text('Submit name'),
+						_1: {ctor: '[]'}
+					}),
+				_1: {ctor: '[]'}
+			}
+		});
+};
+var _user$project$Main$SendMessage = {ctor: 'SendMessage'};
+var _user$project$Main$chatView = function (model) {
+	var _p2 = model.name;
+	if (_p2 === '') {
+		return _user$project$Main$initialView(model);
+	} else {
+		return A2(
+			_elm_lang$html$Html$div,
+			{ctor: '[]'},
+			{
 				ctor: '::',
 				_0: A2(
 					_elm_lang$html$Html$div,
 					{ctor: '[]'},
-					{ctor: '[]'}),
+					_user$project$Main$converstationView(model)),
 				_1: {
 					ctor: '::',
 					_0: A2(
@@ -9432,8 +9437,12 @@ var _user$project$Main$loginView = function (model) {
 								_0: _elm_lang$html$Html_Attributes$value(model.input),
 								_1: {
 									ctor: '::',
-									_0: _elm_lang$html$Html_Events$onInput(_user$project$Main$Input),
-									_1: {ctor: '[]'}
+									_0: _elm_lang$html$Html_Attributes$placeholder('Message'),
+									_1: {
+										ctor: '::',
+										_0: _elm_lang$html$Html_Events$onInput(_user$project$Main$Input),
+										_1: {ctor: '[]'}
+									}
 								}
 							}
 						},
@@ -9444,128 +9453,22 @@ var _user$project$Main$loginView = function (model) {
 							_elm_lang$html$Html$button,
 							{
 								ctor: '::',
-								_0: _elm_lang$html$Html_Events$onClick(_user$project$Main$SubmitName),
+								_0: _elm_lang$html$Html_Events$onClick(_user$project$Main$SendMessage),
 								_1: {ctor: '[]'}
 							},
 							{
 								ctor: '::',
-								_0: _elm_lang$html$Html$text('Submit name'),
+								_0: _elm_lang$html$Html$text('Send message'),
 								_1: {ctor: '[]'}
 							}),
-						_1: {
-							ctor: '::',
-							_0: A2(
-								_elm_lang$html$Html$div,
-								{ctor: '[]'},
-								_user$project$Main$showMessage(model)),
-							_1: {ctor: '[]'}
-						}
+						_1: {ctor: '[]'}
 					}
 				}
-			}
-		});
-};
-var _user$project$Main$viewInputField = function (model) {
-	return A2(
-		_elm_lang$html$Html$div,
-		{ctor: '[]'},
-		{
-			ctor: '::',
-			_0: A2(
-				_elm_lang$html$Html$input,
-				{
-					ctor: '::',
-					_0: _elm_lang$html$Html_Attributes$class('inputField'),
-					_1: {
-						ctor: '::',
-						_0: _elm_lang$html$Html_Attributes$value(model.input),
-						_1: {
-							ctor: '::',
-							_0: _elm_lang$html$Html_Events$onInput(_user$project$Main$Input),
-							_1: {ctor: '[]'}
-						}
-					}
-				},
-				{ctor: '[]'}),
-			_1: {
-				ctor: '::',
-				_0: A2(
-					_elm_lang$html$Html$button,
-					{
-						ctor: '::',
-						_0: _elm_lang$html$Html_Attributes$class('send'),
-						_1: {
-							ctor: '::',
-							_0: _elm_lang$html$Html_Events$onClick(_user$project$Main$NewMessage),
-							_1: {ctor: '[]'}
-						}
-					},
-					{
-						ctor: '::',
-						_0: _elm_lang$html$Html$text('Send'),
-						_1: {ctor: '[]'}
-					}),
-				_1: {ctor: '[]'}
-			}
-		});
-};
-var _user$project$Main$roomView = function (model) {
-	return A2(
-		_elm_lang$html$Html$div,
-		{
-			ctor: '::',
-			_0: _elm_lang$html$Html_Attributes$class('chat'),
-			_1: {ctor: '[]'}
-		},
-		{
-			ctor: '::',
-			_0: A2(
-				_elm_lang$html$Html$div,
-				{
-					ctor: '::',
-					_0: _elm_lang$html$Html_Attributes$class('participants'),
-					_1: {ctor: '[]'}
-				},
-				_user$project$Main$viewParticipants(model)),
-			_1: {
-				ctor: '::',
-				_0: A2(
-					_elm_lang$html$Html$div,
-					{
-						ctor: '::',
-						_0: _elm_lang$html$Html_Attributes$class('msgPanel'),
-						_1: {ctor: '[]'}
-					},
-					_user$project$Main$viewMsgPanel(model)),
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$html$Html$div,
-						{
-							ctor: '::',
-							_0: _elm_lang$html$Html_Attributes$class('inputPanel'),
-							_1: {ctor: '[]'}
-						},
-						{
-							ctor: '::',
-							_0: _user$project$Main$viewInputField(model),
-							_1: {ctor: '[]'}
-						}),
-					_1: {ctor: '[]'}
-				}
-			}
-		});
-};
-var _user$project$Main$view = function (model) {
-	var _p3 = model.name;
-	if (_p3 === '') {
-		return _user$project$Main$loginView(model);
-	} else {
-		return _user$project$Main$roomView(model);
+			});
 	}
 };
 var _user$project$Main$main = _elm_lang$html$Html$program(
-	{view: _user$project$Main$view, init: _user$project$Main$init, update: _user$project$Main$update, subscriptions: _user$project$Main$subscriptions})();
+	{view: _user$project$Main$chatView, update: _user$project$Main$chatUpdate, init: _user$project$Main$chatInit, subscriptions: _user$project$Main$chatSubscriptions})();
 
 var Elm = {};
 Elm['Main'] = Elm['Main'] || {};
