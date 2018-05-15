@@ -15,24 +15,21 @@ defmodule Backend.Handlers.Chat do
 
   def websocket_handle({:text, message}, state) do
     broadcast_message(message)
-
     {:ok, state}
   end
 
 
-  def websocket_info({:text, text}, state) do
-    IO.inspect(text)
+  def websocket_info(text, state) do
     {:reply, {:text, text}, state}
   end
 
 
   defp broadcast_message(message) do
     connections = get_connections()
-                  |> IO.inspect()
 
     Enum.each(connections, fn conn -> 
       if conn != self() do
-        send(conn, fn -> message end)
+        send(conn, message)
       end
     end)
 

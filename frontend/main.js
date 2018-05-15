@@ -9212,23 +9212,29 @@ var _elm_lang$websocket$WebSocket$onSelfMsg = F3(
 _elm_lang$core$Native_Platform.effectManagers['WebSocket'] = {pkg: 'elm-lang/websocket', init: _elm_lang$websocket$WebSocket$init, onEffects: _elm_lang$websocket$WebSocket$onEffects, onSelfMsg: _elm_lang$websocket$WebSocket$onSelfMsg, tag: 'fx', cmdMap: _elm_lang$websocket$WebSocket$cmdMap, subMap: _elm_lang$websocket$WebSocket$subMap};
 
 var _user$project$Main$conversationView = function (model) {
-	return A2(
-		_elm_lang$core$List$map,
-		function (msg) {
-			return A2(
-				_elm_lang$html$Html$div,
-				{ctor: '[]'},
-				{
-					ctor: '::',
-					_0: _elm_lang$html$Html$text(
-						A2(
-							_elm_lang$core$Basics_ops['++'],
-							msg.name,
-							A2(_elm_lang$core$Basics_ops['++'], '> ', msg.msg))),
-					_1: {ctor: '[]'}
-				});
-		},
-		model.messages);
+	var _p0 = _elm_lang$core$List$isEmpty(
+		A2(_elm_lang$core$Debug$log, 'model', model.messages));
+	if (_p0 === true) {
+		return {ctor: '[]'};
+	} else {
+		return A2(
+			_elm_lang$core$List$map,
+			function (msg) {
+				return A2(
+					_elm_lang$html$Html$div,
+					{ctor: '[]'},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text(
+							A2(
+								_elm_lang$core$Basics_ops['++'],
+								msg.name,
+								A2(_elm_lang$core$Basics_ops['++'], '> ', msg.msg))),
+						_1: {ctor: '[]'}
+					});
+			},
+			model.messages);
+	}
 };
 var _user$project$Main$messageEncode = F2(
 	function (name, msg) {
@@ -9267,8 +9273,8 @@ var _user$project$Main$Message = F2(
 	});
 var _user$project$Main$chatUpdate = F2(
 	function (msg, model) {
-		var _p0 = msg;
-		switch (_p0.ctor) {
+		var _p1 = msg;
+		switch (_p1.ctor) {
 			case 'SendMessage':
 				var newMessage = A2(_user$project$Main$Message, model.name, model.input);
 				var message = A2(
@@ -9297,7 +9303,7 @@ var _user$project$Main$chatUpdate = F2(
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{input: _p0._0}),
+						{input: _p1._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'AddName':
@@ -9310,9 +9316,9 @@ var _user$project$Main$chatUpdate = F2(
 				};
 			default:
 				var parsedMessage = function () {
-					var _p1 = A2(_elm_lang$core$Json_Decode$decodeString, _user$project$Main$messageDecode, _p0._0);
-					if (_p1.ctor === 'Ok') {
-						return _p1._0;
+					var _p2 = A2(_elm_lang$core$Json_Decode$decodeString, _user$project$Main$messageDecode, _p1._0);
+					if (_p2.ctor === 'Ok') {
+						return _p2._0;
 					} else {
 						return A2(_user$project$Main$JsonMessage, 'error', 'error');
 					}
@@ -9413,8 +9419,8 @@ var _user$project$Main$initialView = function (model) {
 };
 var _user$project$Main$SendMessage = {ctor: 'SendMessage'};
 var _user$project$Main$chatView = function (model) {
-	var _p2 = model.name;
-	if (_p2 === '') {
+	var _p3 = model.name;
+	if (_p3 === '') {
 		return _user$project$Main$initialView(model);
 	} else {
 		return A2(

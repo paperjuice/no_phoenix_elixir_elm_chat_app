@@ -80,10 +80,14 @@ initialView model =
       ]
 
 conversationView model =
-  List.map (\ msg ->
-    div[] [ text (msg.name ++ "> " ++ msg.msg) ]
-    ) model.messages
-
+  case List.isEmpty (Debug.log "model" model.messages) of
+    True -> []
+    
+    False -> 
+            List.map (\ msg ->
+                    div[] [ text (msg.name ++ "> " ++ msg.msg) ]
+            ) model.messages
+        
 
 -- Update --
 chatUpdate : Msg -> Model -> (Model, Cmd msg)
