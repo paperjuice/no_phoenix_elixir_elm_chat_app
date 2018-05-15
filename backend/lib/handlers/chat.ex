@@ -3,96 +3,67 @@ defmodule Backend.Handlers.Chat do
   use GenServer
 
   def init(req, state) do
-
     {:cowboy_websocket, req, state}
   end
 
   def websocket_init(state) do
+    store_connection(self())
 
     {:ok, state}
   end
 
 
-  def websocket_handle({:text, json_request}, state) do
-    object = Poison.decode!(json_request)
+  def websocket_handle({:text, message}, state) do
+    broadcast_message(message)
 
-    case object["type"] do
-      "register_name" -> store_connection({self(), object["name"]})
-      "new_message" -> 
-    end
-
-    conns = get_connections()
-
-    for {pid, name} <- conns do
-      IO.puts( "#{inspect(pid)} - #{name}")
-    end
-
-    response =
-    %{
-      "msg_type" => "register_name",
-      "msg" => object["name"]
-    }
-    |> Poison.encode!()
-
-    {:reply, {:text, response}, state}
-  end
-
-
-  def websocket_info({:text, _text}, state) do
-    IO.inspect("info")
     {:ok, state}
   end
 
 
-
-  defp name_unique?(new_name) do
-    state = get_connections()
-
-    result =
-      Enum.find(state, fn {pid, name} ->
-        name  == new_name && Process.alive?(pid)
-      end)
-
-    case result do
-      nil -> true
-      _   -> false
-    end
+  def websocket_info({:text, text}, state) do
+    IO.inspect(text)
+    {:reply, {:text, text}, state}
   end
 
 
+  defp broadcast_message(message) do
+    connections = get_connections()
+                  |> IO.inspect()
 
-  ### GenServer ###
-  def init_genserver do
+    Enum.each(connections, fn conn -> 
+      if conn != self() do
+        send(conn, fn -> message end)
+      end
+    end)
+
+  end
+
+
+  #### GenServer ####
+  def init_genserver() do
     GenServer.start_link(__MODULE__, {:connections, []}, [name: :connections])
   end
 
-  def init({:participants, state}) do
-    {:ok, state}
-  end
-  def init({:connections, state}) do
-    {:ok, state}
+  def init({:connections, []}) do
+    {:ok, []}
   end
 
-
-
-### Connections  ###
-  def store_connection({pid, name}) do
-    GenServer.cast(:connections, {:store, {pid, name}})
+  def store_connection(pid) do
+    GenServer.cast(:connections, {:store, pid})
   end
 
-  def get_connections do
+  def get_connections() do
     GenServer.call(:connections, :get)
   end
 
-  def handle_cast({:store, {pid, name}}, state) do
+  def handle_cast({:store, pid}, state) do
     state =
-      Enum.filter(state, fn {pid, _name} ->
+      Enum.filter(state, fn pid -> 
         Process.alive?(pid)
       end)
 
-    {:noreply, [{pid, name} | state]}
+    {:noreply, [pid|state]}
   end
-
   def handle_call(:get, _from, state) do
     {:reply, state, state}
   end

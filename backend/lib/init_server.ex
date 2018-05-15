@@ -3,7 +3,7 @@ defmodule Backend.InitServer do
 
   def init do
     dispatch = :cowboy_router.compile([
-      {:_, [{"/chat", Chat, []}]
+      {:_, [{"/", Chat, []}]
       }
     ])
 
