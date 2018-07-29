@@ -27,12 +27,9 @@ defmodule Backend.Handlers.Chat do
   defp broadcast_message(message) do
     connections = get_connections()
 
-    Enum.each(connections, fn conn -> 
-      if conn != self() do
-        send(conn, message)
-      end
+    Enum.each(connections, fn conn ->
+      send(conn, message)
     end)
-
   end
 
 
@@ -55,7 +52,7 @@ defmodule Backend.Handlers.Chat do
 
   def handle_cast({:store, pid}, state) do
     state =
-      Enum.filter(state, fn pid -> 
+      Enum.filter(state, fn pid ->
         Process.alive?(pid)
       end)
 

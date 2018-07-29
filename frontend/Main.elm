@@ -1,4 +1,4 @@
-import Html exposing(Html, div, text, input, button)
+import Html exposing(Html, div, text, input, button, h1)
 import Html.Attributes exposing(type_, placeholder, class, value)
 import Html.Events exposing(onInput, onClick)
 import Json.Decode as JD
@@ -19,22 +19,25 @@ main =
   }
 
 -- Json Encode --
-messageEncode name msg =
+messageEncode type_ name msg =
   JE.object
-  [ ("name", JE.string name)
+  [ ("type_", JE.string type_)
+  , ("name", JE.string name)
   , ("msg",  JE.string msg)
   ]
 
 -- Json Decode --
 type alias JsonMessage =
-  { name : String
-  , msg : String
+  { type_: String
+  , name : String
+  , msg  : String
   }
 
 messageDecode =
-  JD.map2 JsonMessage
+  JD.map3 JsonMessage
+  ( JD.field "type_" JD.string)
   ( JD.field "name" JD.string)
-  (JD.field "msg" JD.string)
+  ( JD.field "msg" JD.string)
 
 -- Message --
 type Msg
@@ -46,7 +49,8 @@ type Msg
 
 -- Model --
 type alias Message =
-  { name : String
+  { type_ : String
+  , name : String
   , msg : String
   }
 
@@ -59,35 +63,40 @@ type alias Model =
 -- Init --
 chatInit : (Model, Cmd msg)
 chatInit =
-  ( Model  "" "" [ Message "" "" ], Cmd.none)
+  ( Model  "" "" [ Message "" "" "" ], Cmd.none)
 
 -- View --
 chatView : Model -> Html Msg
 chatView model =
   case model.name of
     "" -> initialView model
-    _ -> div[ ]
-            [ div [] (conversationView model)
-            , input [ type_ "text", value model.input, placeholder "Message", onInput Input ] []
-            , button [onClick SendMessage] [text "Send message"]
-            ]
+    _ -> roomView model
 
 initialView : Model -> Html Msg
 initialView model =
   div [ class "initialView" ]
-      [ input [ type_ "text", value model.input, placeholder "Enter name", onInput Input ] []
+      [ h1 [ class "title" ] [ text "My small ChatApp" ]
+      , input [ type_ "text", value model.input, placeholder "Enter name", onInput Input ] []
       , button [ onClick AddName ] [ text "Submit name" ]
       ]
 
 conversationView model =
   case List.isEmpty (Debug.log "model" model.messages) of
     True -> []
-    
-    False -> 
+
+    False ->
             List.map (\ msg ->
                     div[] [ text (msg.name ++ "> " ++ msg.msg) ]
             ) model.messages
-        
+
+
+roomView : Model -> Html Msg
+roomView model =
+  div[ ]
+     [ div [] (conversationView model)
+     , input [ type_ "text", value model.input, placeholder "Message", onInput Input ] []
+     , button [ onClick SendMessage ] [ text "Send message" ]
+     ]
 
 -- Update --
 chatUpdate : Msg -> Model -> (Model, Cmd msg)
@@ -96,12 +105,12 @@ chatUpdate msg model =
     SendMessage ->
       let
           message =
-            messageEncode model.name model.input
+            messageEncode "msg" model.name model.input
             |> JE.encode 0
 
           newMessage = Message model.name model.input
       in
-          ( {model | messages = model.messages ++  [newMessage], input = "" }
+          ( {model | input = "" }
           , WS.send serverUrl message
           )
 
@@ -116,11 +125,12 @@ chatUpdate msg model =
           parsedMessage =
             case JD.decodeString messageDecode message of
               Ok response -> response
-              error -> JsonMessage "error" "error"
+              error -> JsonMessage "error" "error" "error"
 
-          newMessage = Message parsedMessage.name parsedMessage.msg
+          newMessage = Message parsedMessage.type_ parsedMessage.name parsedMessage.msg
       in
           ( { model | messages = model.messages ++ [ newMessage ]}, Cmd.none)
+
 
 -- Subscriptions --
 chatSubscriptions : Model -> Sub Msg

@@ -23,7 +23,8 @@ defmodule Backend.MixProject do
   defp deps do
     [
       {:cowboy, "2.3.0"},
-      {:poison, ">=0.0.0"}
+      {:poison, ">=0.0.0"},
+      {:distillery, "~>1.5", runtime: false}
     ]
   end
 end
