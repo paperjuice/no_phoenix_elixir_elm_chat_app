@@ -7,6 +7,7 @@ defmodule Backend.Supervisor do
   end
 
   def init(:ok) do
+
     children = [__MODULE__]
     Supervisor.init(children, strategy: :one_for_one)
   end

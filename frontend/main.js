@@ -9251,7 +9251,7 @@ var _user$project$Main$messageEncode = F2(
 				}
 			});
 	});
-var _user$project$Main$serverUrl = 'ws://localhost:9998';
+var _user$project$Main$serverUrl = 'ws://172.20.10.2:9998/chat';
 var _user$project$Main$JsonMessage = F2(
 	function (a, b) {
 		return {name: a, msg: b};
@@ -9279,17 +9279,7 @@ var _user$project$Main$chatUpdate = F2(
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{
-							messages: A2(
-								_elm_lang$core$Basics_ops['++'],
-								model.messages,
-								{
-									ctor: '::',
-									_0: newMessage,
-									_1: {ctor: '[]'}
-								}),
-							input: ''
-						}),
+						{input: ''}),
 					_1: A2(_elm_lang$websocket$WebSocket$send, _user$project$Main$serverUrl, message)
 				};
 			case 'Input':

@@ -7,7 +7,7 @@ import WebSocket as WS
 
 
 serverUrl =
-  "ws://localhost:9998"
+  "ws://127.0.0.1:9998/chat"
 
 -- Main --
 main =
@@ -42,7 +42,6 @@ type Msg
   | AddName
   | Input String
   | NewMessage String
-
 
 -- Model --
 type alias Message =
@@ -79,6 +78,7 @@ initialView model =
       , button [ onClick AddName ] [ text "Submit name" ]
       ]
 
+conversationView : Model -> List (Html msg)
 conversationView model =
   List.map (\ msg ->
     div[] [ text (msg.name ++ "> " ++ msg.msg) ]
@@ -97,7 +97,7 @@ chatUpdate msg model =
 
           newMessage = Message model.name model.input
       in
-          ( {model | messages = model.messages ++  [newMessage], input = "" }
+          ( {model | input = ""}
           , WS.send serverUrl message
           )
 
